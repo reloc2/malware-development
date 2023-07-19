@@ -1,0 +1,120 @@
+/*
+
+ Red Team Operator course code template
+ Find .NET process with RWX memory
+ 
+ author: reenz0h (twitter: @SEKTOR7net)
+ credits: Wen Jia Liu
+ 
+*/
+#include <windows.h>
+#include <stdio.h>
+#include <Psapi.h>
+#include <shlwapi.h>
+#include <strsafe.h>
+#include <winternl.h>
+
+#pragma comment(lib, "ntdll.lib")
+#pragma comment(lib, "Shlwapi.lib")
+
+typedef NTSTATUS (NTAPI * NtGetNextProcess_t)(
+	HANDLE ProcessHandle,
+	ACCESS_MASK DesiredAccess,
+	ULONG HandleAttributes,
+	ULONG Flags,
+	PHANDLE NewProcessHandle
+);
+
+typedef NTSTATUS (NTAPI * NtOpenSection_t)(
+	PHANDLE            SectionHandle,
+	ACCESS_MASK        DesiredAccess,
+	POBJECT_ATTRIBUTES ObjectAttributes
+);
+
+
+HANDLE FindDotNet(int p) {
+
+	int pid = 0;
+	HANDLE currentProc = NULL;
+	UNICODE_STRING sectionName = { 0 };
+	WCHAR ProcNumber[30];
+	OBJECT_ATTRIBUTES objectAttributes;
+	
+	// resolve function addresses
+	NtGetNextProcess_t pNtGetNextProcess = (NtGetNextProcess_t) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtGetNextProcess");
+	NtOpenSection_t pNtOpenSection = (NtOpenSection_t) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtOpenSection");
+
+	// from: Process Hacker source code
+	// Most .NET processes have a handle open to a section named \BaseNamedObjects\Cor_Private_IPCBlock(_v4)_<ProcessId>.
+	WCHAR objPath[] = L"\\BaseNamedObjects\\Cor_Private_IPCBlock_v4_";
+	sectionName.Buffer = (PWSTR) malloc(500);
+
+	// loop through all processes
+	while (!pNtGetNextProcess(currentProc, MAXIMUM_ALLOWED, 0, 0, &currentProc)) {
+		
+		pid = GetProcessId(currentProc);
+		if (p != 0 && p != pid) continue;			
+
+		// convert INT to WCHAR
+		swprintf_s(ProcNumber, L"%d", pid);
+
+		// and fill out UNICODE_STRING structure
+		ZeroMemory(sectionName.Buffer, 500);
+		memcpy(sectionName.Buffer, objPath, wcslen(objPath) * 2);   // add section name "prefix"
+		StringCchCatW(sectionName.Buffer, 500, ProcNumber);			// and append with process ID
+		sectionName.Length = wcslen(sectionName.Buffer) * 2;		// finally, adjust the string size
+		sectionName.MaximumLength = sectionName.Length + 1;		
+
+		// try to open the section - if exists, .NET process is found
+		InitializeObjectAttributes(&objectAttributes, &sectionName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+		HANDLE sectionHandle = NULL;		
+		NTSTATUS status = pNtOpenSection(&sectionHandle, SECTION_QUERY, &objectAttributes);
+		if (NT_SUCCESS(status)) {
+			CloseHandle(sectionHandle);
+			break;
+		}
+	}
+	
+    return currentProc;
+}
+
+
+int FindRWX(HANDLE hndl) {
+
+	MEMORY_BASIC_INFORMATION mbi = {};
+	LPVOID addr = 0;
+
+	// query remote process memory information
+	while (VirtualQueryEx(hndl, addr, &mbi, sizeof(mbi))) {
+		addr = (LPVOID)((DWORD_PTR) mbi.BaseAddress + mbi.RegionSize);
+
+		// look for RWX memory regions which are not backed by an image
+		if (mbi.Protect == PAGE_EXECUTE_READWRITE
+			&& mbi.State == MEM_COMMIT
+			&& mbi.Type == MEM_PRIVATE)
+
+			printf("Found RWX memory: %#18llx\t(%#6llu kB | %#7llu )\n", mbi.BaseAddress, mbi.RegionSize/1024, mbi.RegionSize);
+	}
+
+	return 0;
+}
+
+
+int main(void) {
+
+	char procNameTemp[MAX_PATH];
+	HANDLE h = NULL;
+	
+	h = FindDotNet(0);
+	if (h) GetProcessImageFileNameA(h, procNameTemp, MAX_PATH);
+
+	printf("[+] DotNet process %s%d) [%s]\n",
+					h != 0 ? "found at PID: (" : "NOT FOUND (",
+					GetProcessId(h),
+					h != 0 ? PathFindFileNameA(procNameTemp) : "<unknown>");
+
+	FindRWX(h);
+	CloseHandle(h);
+	
+	return 0;
+}
