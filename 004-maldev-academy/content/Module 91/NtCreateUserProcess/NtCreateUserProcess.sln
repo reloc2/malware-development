@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33122.133
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NtCreateUserProcess", "NtCreateUserProcess\NtCreateUserProcess.vcxproj", "{627FF925-85E1-44B1-B65D-FD3A93A5D4F6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{627FF925-85E1-44B1-B65D-FD3A93A5D4F6}.Debug|x64.ActiveCfg = Debug|x64
+		{627FF925-85E1-44B1-B65D-FD3A93A5D4F6}.Debug|x64.Build.0 = Debug|x64
+		{627FF925-85E1-44B1-B65D-FD3A93A5D4F6}.Debug|x86.ActiveCfg = Debug|Win32
+		{627FF925-85E1-44B1-B65D-FD3A93A5D4F6}.Debug|x86.Build.0 = Debug|Win32
+		{627FF925-85E1-44B1-B65D-FD3A93A5D4F6}.Release|x64.ActiveCfg = Release|x64
+		{627FF925-85E1-44B1-B65D-FD3A93A5D4F6}.Release|x64.Build.0 = Release|x64
+		{627FF925-85E1-44B1-B65D-FD3A93A5D4F6}.Release|x86.ActiveCfg = Release|Win32
+		{627FF925-85E1-44B1-B65D-FD3A93A5D4F6}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0D29B915-2227-45F4-AA52-94C1837629DF}
+	EndGlobalSection
+EndGlobal
